@@ -1,0 +1,10 @@
+name = "badestellen-berlin"
+compatibility_date = "2026-06-28"
+pages_build_output_dir = "dist"
+
+[vars]
+BADESTELLEN_SOURCE_URL = "https://www.data.lageso.de/baden/00_History_gesamt/History.csv"
+BADESTELLEN_METADATA_URL = "https://datawrapper.dwcdn.net/RmRRt/30/dataset.csv"
+BADESTELLEN_SOURCE_NAME = "LAGeSo Berlin official bathing-water data"
+BADESTELLEN_SOURCE_LINK = "https://www.berlin.de/lageso/gesundheit/gesundheitsschutz/badegewaesser/liste-der-badestellen/"
+BADESTELLEN_CACHE_SECONDS = "900"
