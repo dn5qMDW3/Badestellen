@@ -33,6 +33,20 @@ input {
   border-radius: 8px;
 }
 
+.mobile-sheet {
+  height: var(--sheet-height);
+  min-height: 11rem;
+  max-height: calc(100svh - 8rem);
+}
+
+@media (min-width: 1024px) {
+  .mobile-sheet {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;

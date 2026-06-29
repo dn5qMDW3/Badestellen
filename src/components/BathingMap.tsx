@@ -22,6 +22,7 @@ export function BathingMap({ spots, selectedSpot, userLocation, onSelect }: Bath
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <MapResize />
       <MapFocus spot={selectedSpot} userLocation={userLocation} />
       {spots.map((spot) => (
         <Marker key={spot.id} position={[spot.latitude, spot.longitude]} icon={markerIcon(statusMeta[spot.status].marker)} eventHandlers={{ click: () => onSelect(spot) }}>
@@ -42,6 +43,22 @@ export function BathingMap({ spots, selectedSpot, userLocation, onSelect }: Bath
       ) : null}
     </MapContainer>
   )
+}
+
+function MapResize() {
+  const map = useMap()
+
+  useEffect(() => {
+    const container = map.getContainer()
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => map.invalidateSize())
+    })
+
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [map])
+
+  return null
 }
 
 function MapFocus({ spot, userLocation }: { spot: BathingSpot | null; userLocation: GeolocationPosition | null }) {

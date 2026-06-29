@@ -1,5 +1,6 @@
-import { AlertCircle, LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { AlertCircle, GripHorizontal, LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { BathingMap } from './components/BathingMap'
 import { BathingSpotCard } from './components/BathingSpotCard'
 import { SpotDetail } from './components/SpotDetail'
@@ -18,6 +19,10 @@ const filters: { value: FilterValue; label: string }[] = [
   { value: 'unknown', label: 'Unknown' },
 ]
 
+const sheetSnapPoints = [28, 54, 78]
+const minSheetHeight = sheetSnapPoints[0]
+const maxSheetHeight = sheetSnapPoints[sheetSnapPoints.length - 1]
+
 function App() {
   const [data, setData] = useState<BathingWaterResponse | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -26,6 +31,36 @@ function App() {
   const [selectedSpot, setSelectedSpot] = useState<BathingSpot | null>(null)
   const [userLocation, setUserLocation] = useState<GeolocationPosition | null>(null)
   const [geoError, setGeoError] = useState<string | null>(null)
+  const [sheetHeight, setSheetHeight] = useState(54)
+  const dragStart = useRef<{ y: number; height: number } | null>(null)
+
+  useEffect(() => {
+    function handlePointerMove(event: PointerEvent) {
+      if (!dragStart.current) return
+
+      const delta = event.clientY - dragStart.current.y
+      const viewportHeight = window.innerHeight || 1
+      const nextHeight = dragStart.current.height - (delta / viewportHeight) * 100
+      setSheetHeight(clamp(nextHeight, minSheetHeight, maxSheetHeight))
+    }
+
+    function handlePointerUp() {
+      if (!dragStart.current) return
+
+      dragStart.current = null
+      setSheetHeight((height) => nearestSnapPoint(height))
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -80,6 +115,15 @@ function App() {
     )
   }
 
+  function handleSheetPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (window.matchMedia('(min-width: 1024px)').matches) return
+
+    dragStart.current = { y: event.clientY, height: sheetHeight }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const sheetStyle = { '--sheet-height': `${sheetHeight}svh` } as CSSProperties
+
   return (
     <main className="h-svh overflow-hidden bg-slate-50 text-slate-900">
       <div className="flex h-full flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_440px]">
@@ -103,10 +147,20 @@ function App() {
           </header>
         </section>
 
-        <aside className="z-[600] max-h-[62svh] overflow-hidden rounded-t-2xl border-t border-slate-200 bg-slate-50 shadow-2xl lg:max-h-none lg:rounded-none lg:border-l lg:border-t-0">
+        <aside
+          className="mobile-sheet z-[600] shrink-0 overflow-hidden rounded-t-2xl border-t border-slate-200 bg-slate-50 shadow-2xl lg:rounded-none lg:border-l lg:border-t-0"
+          style={sheetStyle}
+        >
           <div className="flex h-full min-h-0 flex-col">
             <div className="border-b border-slate-200 bg-white p-4">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300 lg:hidden" />
+              <button
+                type="button"
+                className="mx-auto mb-3 flex h-7 w-20 touch-none items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 lg:hidden"
+                aria-label="Resize results panel"
+                onPointerDown={handleSheetPointerDown}
+              >
+                <GripHorizontal className="h-5 w-5" />
+              </button>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-950">{filteredSpots.length} bathing spots</p>
@@ -197,6 +251,16 @@ function StateMessage({ title, message, isError = false }: { title: string; mess
         </div>
       </div>
     </div>
+  )
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function nearestSnapPoint(value: number) {
+  return sheetSnapPoints.reduce((nearest, point) =>
+    Math.abs(point - value) < Math.abs(nearest - value) ? point : nearest,
   )
 }
 
